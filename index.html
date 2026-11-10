@@ -296,7 +296,7 @@ textarea#copyOut{width:100%;height:140px;font:12px var(--mono);margin-top:8px;di
 const T = 5; // wall thickness, inches
 const KEY = 'garage-shop-layout-v1';
 const DEFAULT = {
-  v:3,
+  v:4,
   garage:{W:150, D:216, door:108, doorH:84},
   items:[
     {id:'cabinet', name:'Rolling tool cabinet', short:'Tool cabinet', kind:'storage', mobile:true, w:30, d:18, rot:0, x:0, y:0, clr:{f:30,b:0,l:0,r:0},
@@ -319,14 +319,16 @@ const DEFAULT = {
     {id:'lumber', name:'Lumber rack (high on wall)', short:'Lumber rack', kind:'wall', w:96, d:14, rot:270, x:0, y:120, clr:{f:0,b:0,l:0,r:0},
      note:'Mounted above the miter station and screwed into studs. Boards come in the garage door, go on the rack, and come off right where they get cut to rough length. The open garage door rides on ceiling tracks over this part of the wall, so keep the rack and its stacked boards below the track, or slide the rack toward the back.'},
     {id:'bench', name:'Workbench (traditional, 6′)', short:'Workbench', kind:'bench', vise:true, w:72, d:24, rot:90, x:126, y:84, clr:{f:30,b:0,l:0,r:24},
-     note:'Against the right wall and under the two windows, so you plane in daylight. The wall adds stability when planing. Check that the window sills sit above the bench top (about 34″). Leg vise at the front-left end, a row of ¾″ dog holes along the front, and a planing stop at the left end. The right end stays open for long boards.'},
+     note:'Against the right wall and under the windows, so you plane in daylight. The wall adds stability when planing. Check that the window sills sit above the bench top (about 34″). Leg vise at the front-left end, a row of ¾″ dog holes along the front, and a planing stop at the left end. The right end stays open for long boards.'},
     {id:'handtools', name:'Hand-tool cabinet', short:'Hand tools', kind:'wall', w:48, d:10, rot:90, x:140, y:160, clr:{f:0,b:0,l:0,r:0},
      note:'Hanging cabinet or French cleat panel for saws, planes and scrapers. It sits on the right wall just past the front window, at the open end of the bench, so the windows and the holiday storage stay clear.'},
     {id:'jigs', name:'Jig & sled wall (French cleat)', short:'Jigs & sleds', kind:'wall', w:40, d:8, rot:270, x:0, y:74, clr:{f:0,b:0,l:0,r:0},
      note:'Cleat strip for sleds, push sticks, tapering jigs and featherboards, on the left wall above the shop vac, a step from the table saw.'},
-    {id:'win1', name:'Window (back)', short:'Window', kind:'window', w:24, d:6, rot:90, x:144, y:72, clr:{f:0,b:0,l:0,r:0},
+    {id:'win1', name:'Window (back)', short:'Window', kind:'window', w:24, d:6, rot:90, x:144, y:63, clr:{f:0,b:0,l:0,r:0},
      note:'Drag along the wall to match your window, and set its real width. Nothing wall-mounted or tall goes over it. The light strip shows the area kept clear.'},
-    {id:'win2', name:'Window (front)', short:'Window', kind:'window', w:24, d:6, rot:90, x:144, y:120, clr:{f:0,b:0,l:0,r:0},
+    {id:'win2', name:'Window (middle)', short:'Window', kind:'window', w:24, d:6, rot:90, x:144, y:96, clr:{f:0,b:0,l:0,r:0},
+     note:'Drag along the wall to match your window, and set its real width. Nothing wall-mounted or tall goes over it. The light strip shows the area kept clear.'},
+    {id:'win3', name:'Window (front)', short:'Window', kind:'window', w:24, d:6, rot:90, x:144, y:129, clr:{f:0,b:0,l:0,r:0},
      note:'Drag along the wall to match your window, and set its real width. Nothing wall-mounted or tall goes over it. The light strip shows the area kept clear.'}
   ]
 };
@@ -337,7 +339,7 @@ const clone = o => JSON.parse(JSON.stringify(o));
 function load(){ try{ const s = localStorage.getItem(KEY); return s ? JSON.parse(s) : null; }catch(e){ return null; } }
 function save(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
 
-const LAYOUT_VERSION = 3;
+const LAYOUT_VERSION = 4;
 let state = load() || clone(DEFAULT);
 if(!state.v){
 state.items = state.items.filter(i => i.id !== 'door');
@@ -367,6 +369,15 @@ if(!state.items.some(i => i.id === 'bins')){
 }
 let upgradedFrom = null;
 if((state.v || 0) < 3){ upgradedFrom = clone(state); upgradedFrom.v = 3; state = clone(DEFAULT); save(); }
+if(state.v === 3){
+  // three windows spaced evenly across the middle half of the right wall, whatever the garage size
+  const {W,D} = state.garage, ww = 24, gap = (D/2 - 3*ww) / 4;
+  state.items = state.items.filter(i => !['win1','win2','win3'].includes(i.id));
+  DEFAULT.items.filter(i => i.kind === 'window').forEach((w, k) => {
+    const n = clone(w); n.x = W - n.d; n.y = Math.round(D/4 + gap + k*(ww + gap)); state.items.push(n);
+  });
+  const b = state.items.find(i => i.id === 'bench'); if(b) b.note = b.note.replace('under the two windows', 'under the windows');
+}
 state.v = LAYOUT_VERSION;
 let sel = null, drag = null, snap = 1;
 const view = {clr:true, flow:true};
