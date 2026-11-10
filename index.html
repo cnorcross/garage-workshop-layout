@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Garage Woodshop Layout</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: a drafting sheet. Scaled plan on graph paper at left, a parts panel at right, build notes underneath. */
+:root{
+  --paper:#eef1ee;
+  --sheet:#fbfcfa;
+  --ink:#1d2a2f;
+  --muted:#5b6a70;
+  --line:#cfd8d5;
+  --grid:#e3e9e6;
+  --grid-strong:#ccd6d2;
+  --wall:#36454b;
+  --accent:#d4561a;
+  --clear:#2f6db3;
+  --warn:#b7791f;
+  --bad:#c53030;
+  --steel:#b7c1c5;
+  --wood:#e8d3a8;
+  --wood-dark:#c49a5a;
+  --store:#c9cfe0;
+  --wallitem:rgba(212,86,26,.05);
+  --panel:#ffffff;
+  --display:"Barlow Semi Condensed","Arial Narrow",system-ui,sans-serif;
+  --body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#11171a; --sheet:#172024; --ink:#e3ebe8; --muted:#94a4a9; --line:#2b383d;
+    --grid:#1e292d; --grid-strong:#28363b; --wall:#8a9ba1; --accent:#ff7c3f; --clear:#6aa8ec;
+    --warn:#e0a63c; --bad:#f06262; --steel:#4a5a61; --wood:#6e5a37; --wood-dark:#a17b42;
+    --store:#46506a; --wallitem:rgba(255,124,63,.10); --panel:#1a2428; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#11171a; --sheet:#172024; --ink:#e3ebe8; --muted:#94a4a9; --line:#2b383d;
+  --grid:#1e292d; --grid-strong:#28363b; --wall:#8a9ba1; --accent:#ff7c3f; --clear:#6aa8ec;
+  --warn:#e0a63c; --bad:#f06262; --steel:#4a5a61; --wood:#6e5a37; --wood-dark:#a17b42;
+  --store:#46506a; --wallitem:rgba(255,124,63,.10); --panel:#1a2428; color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45}
+header{padding:22px 24px 14px;display:flex;flex-wrap:wrap;gap:12px 32px;align-items:flex-end;justify-content:space-between}
+h1{font-family:var(--display);font-weight:700;font-size:30px;line-height:1.05;margin:0;letter-spacing:.2px;text-wrap:balance}
+.sub{color:var(--muted);margin:4px 0 0;max-width:62ch}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:16px;height:11px;border:1px solid var(--ink);display:inline-block}
+.app{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:20px;padding:0 24px 24px}
+.plan{background:var(--sheet);border:1px solid var(--line);border-radius:6px;padding:8px;display:flex;justify-content:center;overflow:auto}
+#svg{height:min(82vh,1000px);width:100%;max-width:100%;touch-action:none;user-select:none;-webkit-user-select:none;display:block}
+aside{display:flex;flex-direction:column;gap:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:14px}
+.card h2{font-family:var(--display);font-size:17px;font-weight:700;margin:0 0 10px;text-transform:uppercase;letter-spacing:.6px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.field{display:flex;flex-direction:column;gap:3px;font-size:12.5px;color:var(--muted)}
+.field input,.field select{font:500 14px var(--mono);color:var(--ink);background:var(--sheet);border:1px solid var(--line);border-radius:4px;padding:5px 6px;width:70px}
+.field input[type=text]{font-family:var(--body);width:100%}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.grid4 .field input{width:100%}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.grid2 .field input{width:100%}
+label.chk{display:flex;gap:7px;align-items:center;font-size:14px;cursor:pointer}
+button{font:600 14px var(--display);letter-spacing:.3px;border:1px solid var(--ink);background:transparent;color:var(--ink);border-radius:4px;padding:6px 11px;cursor:pointer}
+button.primary{background:var(--ink);color:var(--sheet)}
+button.danger{border-color:var(--bad);color:var(--bad)}
+button:hover{border-color:var(--accent)}
+button:disabled{opacity:.4;cursor:not-allowed}
+.item.locked{cursor:default}
+.lockd{fill:none;stroke:var(--ink);stroke-width:.5;stroke-dasharray:2 1.5}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.hint{color:var(--muted);font-size:13.5px;margin:0}
+.note{font-size:14px;margin:10px 0 0;padding-top:10px;border-top:1px dashed var(--line)}
+.pos{font:12.5px var(--mono);color:var(--muted);margin:8px 0 0}
+.list{display:flex;flex-direction:column;gap:2px;max-height:300px;overflow:auto}
+.list button{all:unset;cursor:pointer;display:flex;align-items:center;gap:8px;padding:5px 6px;border-radius:4px;font-size:14px}
+.list button:hover,.list button.on{background:var(--grid)}
+.list button:focus-visible{outline:2px solid var(--accent)}
+.dot{width:9px;height:9px;border-radius:50%;background:#3f9e5a;flex:none}
+.dot.warn{background:var(--warn)} .dot.bad{background:var(--bad)}
+.list small{margin-left:auto;font:12px var(--mono);color:var(--muted)}
+.issues{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px;font-size:13.5px}
+.issues li{padding-left:10px;border-left:3px solid var(--line)}
+.issues li.bad{border-color:var(--bad)} .issues li.warn{border-color:var(--warn)} .issues li.info{border-color:var(--clear)}
+.ok{color:#3f9e5a;font-weight:600;font-size:14px;margin:0}
+#pasteIn{width:100%;font:12px var(--mono);background:var(--sheet);color:var(--ink);border:1px solid var(--line);border-radius:4px;padding:6px;resize:vertical}
+.iomsg{font-size:13.5px;margin-top:8px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.iomsg:empty{display:none}
+.iomsg.err{color:var(--bad)}
+.iomsg.okm{color:#3f9e5a}
+.iomsg button{font-size:13px;padding:3px 8px}
+button[hidden]{display:none}
+textarea#copyOut{width:100%;height:140px;font:12px var(--mono);margin-top:8px;display:none;background:var(--sheet);color:var(--ink);border:1px solid var(--line)}
+.notes{padding:0 24px 32px}
+.notes h2{font-family:var(--display);font-size:22px;margin:4px 0 12px}
+.notes .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:14px}
+.notes .card h3{font-family:var(--display);font-size:18px;margin:0 0 6px}
+.notes ul{margin:0;padding-left:18px;font-size:14.5px;max-width:65ch}
+.notes li{margin:4px 0}
+/* SVG */
+.floor{fill:var(--sheet)}
+.g-minor{stroke:var(--grid);stroke-width:.3}
+.g-major{stroke:var(--grid-strong);stroke-width:.5}
+.wall{fill:var(--wall)}
+.ovh{fill:var(--muted);fill-opacity:.05;stroke:none}
+.track{stroke:var(--muted);stroke-width:.9;stroke-dasharray:4 1.5;pointer-events:none}
+.ovht{font:500 3.4px var(--mono);fill:var(--ink);paint-order:stroke;stroke:var(--sheet);stroke-width:1.2px;pointer-events:none}
+.gdoor{stroke:var(--muted);stroke-width:1;stroke-dasharray:3 2}
+.dim{stroke:var(--muted);stroke-width:.4}
+.dimt{font-family:var(--mono);font-size:4.4px;fill:var(--muted)}
+.hatch-line{stroke:var(--clear);stroke-width:.55;opacity:.5}
+.hatch-warn{stroke:var(--warn);stroke-width:.7;opacity:.7}
+.clr{fill:url(#hatch);stroke:var(--clear);stroke-width:.35;stroke-dasharray:1.5 1.2}
+.clr.w{fill:url(#hatchWarn);stroke:var(--warn)}
+.item{cursor:grab}
+.item .body{stroke:var(--ink);stroke-width:.6}
+.k-tool .body{fill:var(--steel)}
+.k-bench .body{fill:var(--wood)}
+.k-storage .body{fill:var(--store)}
+.winzone{fill:var(--clear);fill-opacity:.12;stroke:var(--clear);stroke-width:.4;stroke-dasharray:1.2 1}
+.winframe{fill:none;stroke:var(--ink);stroke-width:.5}
+.glass{stroke:var(--clear);stroke-width:.7}
+.k-wall .body{fill:var(--wallitem);stroke:var(--accent);stroke-dasharray:2.2 1.3;stroke-width:.6}
+.item.lv-warn .body{stroke:var(--warn);stroke-width:1.1;stroke-dasharray:none}
+.item.lv-bad .body{stroke:var(--bad);stroke-width:1.4;stroke-dasharray:none}
+.item.sel .body{stroke:var(--accent);stroke-width:1.5;stroke-dasharray:none}
+.front{stroke:var(--ink);stroke-width:1.9;stroke-linecap:round}
+.caster{fill:var(--sheet);stroke:var(--ink);stroke-width:.35}
+.vise{fill:var(--wood-dark);stroke:var(--ink);stroke-width:.4}
+.dog{fill:var(--ink)}
+.lbl{font-family:var(--display);font-weight:600;fill:var(--ink)}
+.lbld{font-family:var(--mono);fill:var(--muted)}
+.lblw{font-family:var(--display);font-weight:600;fill:var(--accent);font-size:3.9px}
+.lblw.lblwin{fill:var(--clear)}
+.swing{fill:transparent;stroke:none}
+.door-leaf{stroke:var(--ink);stroke-width:1}
+.door-arc{fill:none;stroke:var(--muted);stroke-width:.45;stroke-dasharray:1.6 1}
+.gap{fill:var(--sheet)}
+.flow{fill:none;stroke:var(--accent);stroke-width:.9;opacity:.9}
+.arrowhead{fill:var(--accent)}
+.badge{fill:var(--accent)}
+.badget{fill:#fff;font:700 5px var(--display);text-anchor:middle;dominant-baseline:central;pointer-events:none}
+.flowl{fill:var(--accent);font:600 4px var(--display)}
+@media (max-width:920px){
+  .app{grid-template-columns:1fr}
+  #svg{height:72vh}
+}
+@media (max-width:420px){
+  header,.app,.notes{padding-left:16px;padding-right:16px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Garage Woodshop Layout</h1>
+    <p class="sub">Single-car garage, drawn to scale on a 1-foot grid. Drag anything to move it, press R to rotate. Hatched zones are the working clearance each tool needs.</p>
+  </div>
+  <div class="legend" aria-label="Legend">
+    <span><i class="sw" style="background:var(--steel)"></i>Power tool</span>
+    <span><i class="sw" style="background:var(--wood)"></i>Bench / table</span>
+    <span><i class="sw" style="background:var(--store)"></i>Storage</span>
+    <span><i class="sw" style="background:var(--wallitem);border:1px dashed var(--accent)"></i>Wall-mounted</span>
+    <span><i class="sw" style="background:repeating-linear-gradient(45deg,transparent 0 3px,var(--clear) 3px 4px);border-style:dashed;border-color:var(--clear)"></i>Clearance</span>
+    <span><i class="sw" style="border:none;border-bottom:3px solid var(--ink);height:8px"></i>Working side</span>
+    <span><i class="sw" style="background:var(--sheet);border-color:var(--clear);box-shadow:inset 0 0 0 2px var(--sheet),inset 0 0 0 3px var(--clear)"></i>Window (keep clear)</span>
+    <span>○ casters = mobile</span>
+  </div>
+</header>
+
+<div class="app">
+  <div class="plan"><svg id="svg" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Scaled floor plan of the garage woodshop"></svg></div>
+  <aside>
+    <section class="card" id="selCard" aria-live="polite"></section>
+
+    <section class="card">
+      <h2>Garage</h2>
+      <div class="row">
+        <div class="field"><label for="wft">Width ft</label><input id="wft" type="number" min="6" max="40"></div>
+        <div class="field"><label for="win">in</label><input id="win" type="number" min="0" max="11"></div>
+        <div class="field"><label for="dft">Depth ft</label><input id="dft" type="number" min="8" max="50"></div>
+        <div class="field"><label for="din">in</label><input id="din" type="number" min="0" max="11"></div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <div class="field"><label for="gdw">Door width ft</label><input id="gdw" type="number" min="6" max="20" step="0.5"></div>
+        <div class="field"><label for="gdh">Door height ft</label><input id="gdh" type="number" min="6" max="10" step="0.5"></div>
+        <div class="field"><label for="snap">Snap</label>
+          <select id="snap"><option value="1">1″</option><option value="3">3″</option><option value="6">6″</option></select></div>
+      </div>
+      <div class="row" style="margin-top:10px;gap:14px">
+        <label class="chk"><input type="checkbox" id="vClr" checked> Clearances</label>
+        <label class="chk"><input type="checkbox" id="vFlow" checked> Workflow</label>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Layout check</h2>
+      <div id="issues"></div>
+    </section>
+
+    <section class="card">
+      <h2>Items</h2>
+      <div class="list" id="list"></div>
+      <div style="margin-top:12px;border-top:1px dashed var(--line);padding-top:10px">
+        <div class="grid2">
+          <div class="field" style="grid-column:1/-1"><label for="nName">Add an item</label><input id="nName" type="text" placeholder="e.g. Router table"></div>
+          <div class="field"><label for="nW">Width ″</label><input id="nW" type="number" value="24" min="2"></div>
+          <div class="field"><label for="nD">Depth ″</label><input id="nD" type="number" value="24" min="2"></div>
+          <div class="field" style="grid-column:1/-1"><label for="nK">Type</label>
+            <select id="nK" style="width:100%;font-family:var(--body)"><option value="tool">Power tool</option><option value="bench">Bench / table</option><option value="storage">Storage</option><option value="wall">Wall-mounted</option><option value="window">Window</option></select></div>
+        </div>
+        <div class="row" style="margin-top:8px"><button id="addBtn">Add to plan</button></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Export &amp; import</h2>
+      <p class="hint">An export holds the whole layout, garage size included. Use it as a backup, to move the layout to another device, or to try alternatives side by side.</p>
+      <div class="row" style="margin-top:10px">
+        <button id="dlBtn" class="primary" hidden>Download .json</button>
+        <button id="copyJsonBtn">Copy JSON</button>
+      </div>
+      <div class="row" style="margin-top:12px;border-top:1px dashed var(--line);padding-top:12px">
+        <button id="importBtn">Import .json file</button>
+        <input type="file" id="importFile" accept=".json,application/json,text/plain" hidden>
+      </div>
+      <div class="field" style="margin-top:10px"><label for="pasteIn">Or paste an exported layout</label>
+        <textarea id="pasteIn" rows="3" spellcheck="false" placeholder='{"app":"garage-shop-layout", …}'></textarea></div>
+      <div class="row" style="margin-top:6px"><button id="pasteBtn">Load pasted layout</button></div>
+      <div id="ioMsg" class="iomsg" role="status" aria-live="polite"></div>
+      <div class="row" style="margin-top:12px;border-top:1px dashed var(--line);padding-top:12px">
+        <button id="copyBtn">Copy layout as text</button>
+        <button id="resetBtn">Reset layout</button>
+      </div>
+      <textarea id="copyOut" aria-label="Copy this text" readonly></textarea>
+    </section>
+  </aside>
+</div>
+
+<section class="notes">
+  <h2>Build notes</h2>
+  <div class="cols">
+    <div class="card"><h3>Miter saw station</h3><ul>
+      <li>8 feet long against the left wall, saw dropped into the middle so its table sits flush with both wings.</li>
+      <li>A sliding saw's rails travel backward. Measure how far yours slides and make the station deep enough (about 28″) that the rails clear the drywall.</li>
+      <li>Add a fence with a flip stop on the wings for repeat cuts, and a dust hood behind the blade tied to the shop vac.</li>
+      <li>Cabinets or drawers underneath replace the storage the kitchen table never gave you.</li>
+    </ul></div>
+    <div class="card"><h3>Traditional workbench</h3><ul>
+      <li>About 6′ × 22–24″ fits this garage. A Nicholson (English) bench or a split-top Roubo both work well for hand planes and are built from construction lumber.</li>
+      <li>Laminate the top from Douglas fir or southern yellow pine, 3″ or thicker for mass. Your cherry is a good choice for the vise chop.</li>
+      <li>Leg vise at the front-left end (a screw kit with a parallel guide), or a quick-release front vise if you want a simpler install.</li>
+      <li>Add a row of ¾″ dog holes, a pair of holdfasts and a planing stop. Height around your palm with arms hanging, often 33–35″ for planing.</li>
+    </ul></div>
+    <div class="card"><h3>Table saw and outfeed</h3><ul>
+      <li>Rip along the length of the garage toward the back wall. Open the garage door for anything longer than 8′.</li>
+      <li>Rebuild the 2x4basics kit smaller, about 30″ × 40″, as the outfeed and assembly table. Its legs set the top at about 36″, so measure your saw table first.</li>
+      <li>If the kit sits higher than the saw, keep it as the assembly table and add a fold-down outfeed support to the saw stand.</li>
+    </ul></div>
+    <div class="card"><h3>Drill press / grinder stand</h3><ul>
+      <li>Bolt each tool to its own plywood base cut to the same size, with cleats or a pair of toggle clamps holding it to the stand top. A swap then takes a minute and the drill press goes back in the same spot.</li>
+      <li>Grinder sparks plus sawdust is a fire risk. Sweep the area first, aim the sparks at the floor rather than toward the outfeed table, and never vacuum up hot grit with the shop vac.</li>
+      <li>For plane irons, use the grinder only to reshape a bevel or remove a chip. Grind lightly and dip often so the edge never turns blue, then hone by hand.</li>
+    </ul></div>
+    <div class="card"><h3>Dust collection on a shop vac</h3><ul>
+      <li>Put a cyclone separator (Dust Deputy or Dustopper style) ahead of the vac so the filter stays clean.</li>
+      <li>A tool-activated switch starts the vac when the saw starts.</li>
+      <li>Use a HEPA filter plus bags. Miter saws throw dust no hood fully catches, so wear a respirator for fine dust and consider a box-fan air cleaner with MERV 13 filters.</li>
+    </ul></div>
+    <div class="card"><h3>Power and light</h3><ul>
+      <li>A jobsite saw can pull close to 15 A on its own, so the saw and the vac on one 15 A circuit will trip the breaker. Map which outlets share a circuit and put the vac on a different one.</li>
+      <li>Bright 4000–5000K LED shop lights overhead, plus a light at the bench you can move low for raking light while planing.</li>
+    </ul></div>
+    <div class="card"><h3>Mounting on drywall</h3><ul>
+      <li>Screw French cleats, the lumber rack and wall cabinets into studs, usually 16″ on center. Drywall anchors won't carry clamps or lumber.</li>
+      <li>When the garage door is open it sits on ceiling tracks over roughly the front 8–9′ (the shaded zone on the plan). Keep the lumber rack and anything stacked on it below the tracks, and put any ceiling storage behind that zone.</li>
+      <li>If the wall you share with the house is fire-rated drywall, keep it intact: no cutouts.</li>
+    </ul></div>
+  </div>
+</section>
+
+<script>
+(function(){
+const T = 5; // wall thickness, inches
+const KEY = 'garage-shop-layout-v1';
+const DEFAULT = {
+  v:3,
+  garage:{W:150, D:216, door:108, doorH:84},
+  items:[
+    {id:'cabinet', name:'Rolling tool cabinet', short:'Tool cabinet', kind:'storage', mobile:true, w:30, d:18, rot:0, x:0, y:0, clr:{f:30,b:0,l:0,r:0},
+     note:'Back-left corner, out of every cutting path, with 30″ in front for open drawers. Enter your cabinet\'s real size.'},
+    {id:'clamps', name:'Clamp rack', short:'Clamp rack', kind:'wall', w:48, d:8, rot:0, x:36, y:0, clr:{f:0,b:0,l:0,r:0},
+     note:'Wall rack on the back wall, right behind the assembly table where glue-ups happen.'},
+    {id:'drill', name:'Drill press / grinder stand', short:'Drill / grinder', kind:'tool', w:20, d:24, rot:270, x:0, y:50, clr:{f:30,b:0,l:22,r:22},
+     note:'Shared stand on the left wall next to the tool cabinet. The drill press and bench grinder swap on top, and whichever is off lives on the shelf underneath. Room on both sides for long stock. Before grinding, sweep shavings away and keep the shop vac out of the spark path.'},
+    {id:'bins', name:'Holiday storage (reserved 5′ × 5′)', short:'Holiday bins', kind:'storage', w:60, d:60, rot:0, x:90, y:0, clr:{f:24,b:0,l:0,r:0}, sides:{f:'access'},
+     note:'Reserved for the stacking holiday-decoration bins. It stays in the back-right corner when you change the garage size. The 24″ in front stays open so bins come out without moving any tools. Nothing hangs on the wall above it.'},
+    {id:'outfeed', name:'Outfeed / assembly table', short:'Outfeed / assembly', kind:'bench', mobile:true, w:30, d:40, rot:0, x:60, y:64, clr:{f:0,b:0,l:24,r:24},
+     note:'Your 2x4basics kit rebuilt to about 30″ × 40″, sized to fit beside the holiday storage. It catches rips off the saw and doubles as the assembly table. The lower shelf can hold the shop vac or jigs. Check that its top lands a little below the saw table.'},
+    {id:'vac', name:'Shop vac + cyclone', short:'Vac', kind:'tool', mobile:true, w:20, d:20, rot:0, x:4, y:96, clr:{f:0,b:0,l:0,r:0},
+     note:'Parked between the miter station and the table saw so one hose reaches either. Add a tool-activated switch.'},
+    {id:'saw', name:'Jobsite table saw', short:'Table saw', kind:'tool', mobile:true, w:30, d:26, rot:0, x:60, y:106, clr:{f:84,b:96,l:30,r:24},
+     sides:{f:'infeed', b:'outfeed'}, allow:['outfeed'],
+     note:'Rips run the length of the garage, feeding toward the back wall: about 7′ of infeed and 8′ of outfeed. Open the garage door for longer stock. On its stand it can roll aside when you need the floor.'},
+    {id:'miter', name:'Miter saw station', short:'Miter saw station', kind:'tool', w:96, d:28, rot:270, x:0, y:120, clr:{f:30,b:0,l:0,r:0},
+     note:'8′ station along the left wall with the saw recessed so its table is flush with the wings. Long boards run along the wall. Set the depth so the saw\'s slide rails clear the drywall.'},
+    {id:'lumber', name:'Lumber rack (high on wall)', short:'Lumber rack', kind:'wall', w:96, d:14, rot:270, x:0, y:120, clr:{f:0,b:0,l:0,r:0},
+     note:'Mounted above the miter station and screwed into studs. Boards come in the garage door, go on the rack, and come off right where they get cut to rough length. The open garage door rides on ceiling tracks over this part of the wall, so keep the rack and its stacked boards below the track, or slide the rack toward the back.'},
+    {id:'bench', name:'Workbench (traditional, 6′)', short:'Workbench', kind:'bench', vise:true, w:72, d:24, rot:90, x:126, y:84, clr:{f:30,b:0,l:0,r:24},
+     note:'Against the right wall and under the two windows, so you plane in daylight. The wall adds stability when planing. Check that the window sills sit above the bench top (about 34″). Leg vise at the front-left end, a row of ¾″ dog holes along the front, and a planing stop at the left end. The right end stays open for long boards.'},
+    {id:'handtools', name:'Hand-tool cabinet', short:'Hand tools', kind:'wall', w:48, d:10, rot:90, x:140, y:160, clr:{f:0,b:0,l:0,r:0},
+     note:'Hanging cabinet or French cleat panel for saws, planes and scrapers. It sits on the right wall just past the front window, at the open end of the bench, so the windows and the holiday storage stay clear.'},
+    {id:'jigs', name:'Jig & sled wall (French cleat)', short:'Jigs & sleds', kind:'wall', w:40, d:8, rot:270, x:0, y:74, clr:{f:0,b:0,l:0,r:0},
+     note:'Cleat strip for sleds, push sticks, tapering jigs and featherboards, on the left wall above the shop vac, a step from the table saw.'},
+    {id:'win1', name:'Window (back)', short:'Window', kind:'window', w:24, d:6, rot:90, x:144, y:72, clr:{f:0,b:0,l:0,r:0},
+     note:'Drag along the wall to match your window, and set its real width. Nothing wall-mounted or tall goes over it. The light strip shows the area kept clear.'},
+    {id:'win2', name:'Window (front)', short:'Window', kind:'window', w:24, d:6, rot:90, x:144, y:120, clr:{f:0,b:0,l:0,r:0},
+     note:'Drag along the wall to match your window, and set its real width. Nothing wall-mounted or tall goes over it. The light strip shows the area kept clear.'}
+  ]
+};
+const FLOW = [['door-gap','Lumber in'],['miter','Crosscut'],['saw','Rip'],['bench','Plane & join'],['outfeed','Assemble']];
+const SIDE = {f:'front', b:'back', l:'left-side', r:'right-side'};
+
+const clone = o => JSON.parse(JSON.stringify(o));
+function load(){ try{ const s = localStorage.getItem(KEY); return s ? JSON.parse(s) : null; }catch(e){ return null; } }
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
+
+const LAYOUT_VERSION = 3;
+let state = load() || clone(DEFAULT);
+if(!state.v){
+state.items = state.items.filter(i => i.id !== 'door');
+if(!state.garage.doorH) state.garage.doorH = 84;
+if(!state.items.some(i => i.kind === 'window')){
+  const moved = {bench:[120,72,120,84], handtools:[134,84,134,30], jigs:[136,150,136,166]};
+  for(const [id,[ox,oy,nx,ny]] of Object.entries(moved)){ const it = state.items.find(i => i.id === id); if(it && it.x === ox && it.y === oy){ it.x = nx; it.y = ny; const d = DEFAULT.items.find(i => i.id === id); if(d) it.note = d.note; } }
+  for(const w of DEFAULT.items.filter(i => i.kind === 'window')) state.items.push(clone(w));
+}
+{ const dp = state.items.find(i => i.id === 'drill'); const d = DEFAULT.items.find(i => i.id === 'drill');
+  if(dp && dp.name === 'Drill press'){ dp.name = d.name; dp.short = d.short; dp.note = d.note; } }
+if(state.items.some(i => i.id === 'bins' && i.w === 48 && i.d === 48)){
+  const moves = {bins:[96,0], saw:[60,112], outfeed:[60,62], clamps:[38,0], handtools:[134,48], jigs:[136,166]};
+  for(const [id,[ox,oy]] of Object.entries(moves)){
+    const it = state.items.find(i => i.id === id), d = DEFAULT.items.find(i => i.id === id);
+    if(it && d && it.x === ox && it.y === oy){ Object.assign(it, {x:d.x, y:d.y, w:d.w, d:d.d, rot:d.rot, name:d.name, note:d.note}); }
+  }
+  const b = state.items.find(i => i.id === 'bins'); if(b){ const d = DEFAULT.items.find(i => i.id === 'bins'); Object.assign(b, {w:d.w, d:d.d, name:d.name, note:d.note}); }
+}
+if(!state.items.some(i => i.id === 'bins')){
+  const dp = state.items.find(i => i.id === 'drill');
+  if(dp && dp.x === 100 && dp.y === 0 && dp.rot === 0){ Object.assign(dp, clone(DEFAULT.items.find(i => i.id === 'drill'))); }
+  const ht = state.items.find(i => i.id === 'handtools');
+  if(ht && ht.x === 134 && ht.y === 30 && ht.w === 48){ Object.assign(ht, clone(DEFAULT.items.find(i => i.id === 'handtools'))); }
+  state.items.push(clone(DEFAULT.items.find(i => i.id === 'bins')));
+}
+}
+let upgradedFrom = null;
+if((state.v || 0) < 3){ upgradedFrom = clone(state); upgradedFrom.v = 3; state = clone(DEFAULT); save(); }
+state.v = LAYOUT_VERSION;
+let sel = null, drag = null, snap = 1;
+const view = {clr:true, flow:true};
+const svg = document.getElementById('svg');
+const $ = id => document.getElementById(id);
+const find = id => state.items.find(i => i.id === id);
+
+const fmt = n => { n = Math.round(n); const f = Math.floor(n/12), i = n % 12; return i ? `${f}′ ${i}″` : `${f}′`; };
+const fin = n => `${Math.round(n)}″`;
+const r1 = n => Math.round(n*10)/10;
+
+function bbox(it){ const s = it.rot % 180 !== 0; return {x:it.x, y:it.y, w:s?it.d:it.w, h:s?it.w:it.d}; }
+// local (u along width, v along depth; v=d is the working/front side) -> plan coords
+function tf(it,u,v){
+  switch(it.rot){
+    case 90:  return [it.x + it.d - v, it.y + u];
+    case 180: return [it.x + it.w - u, it.y + it.d - v];
+    case 270: return [it.x + v, it.y + it.w - u];
+    default:  return [it.x + u, it.y + v];
+  }
+}
+function lrect(it,u,v,uw,vh){
+  const a = tf(it,u,v), b = tf(it,u+uw,v+vh);
+  return {x:Math.min(a[0],b[0]), y:Math.min(a[1],b[1]), w:Math.abs(a[0]-b[0]), h:Math.abs(a[1]-b[1])};
+}
+function clearRects(it){
+  const c = it.clr || {}, out = [];
+  if(c.f>0) out.push(Object.assign(lrect(it,0,it.d,it.w,c.f),{side:'f'}));
+  if(c.b>0) out.push(Object.assign(lrect(it,0,-c.b,it.w,c.b),{side:'b'}));
+  if(c.l>0) out.push(Object.assign(lrect(it,-c.l,0,c.l,it.d),{side:'l'}));
+  if(c.r>0) out.push(Object.assign(lrect(it,it.w,0,c.r,it.d),{side:'r'}));
+  return out;
+}
+const inter = (a,b) => a.x < b.x+b.w-0.01 && b.x < a.x+a.w-0.01 && a.y < b.y+b.h-0.01 && b.y < a.y+a.h-0.01;
+const near = (a,b) => Math.abs(a-b) <= 1;
+function onWall(b){ const {W,D} = state.garage; return near(b.x,0)||near(b.y,0)||near(b.x+b.w,W)||near(b.y+b.h,D); }
+const sideName = (it,s) => (it.sides && it.sides[s]) || SIDE[s];
+
+function runChecks(){
+  const {W,D,door} = state.garage, gx = (W-door)/2;
+  const issues = [], lv = {}, warnClr = new Set();
+  const bump = (id,l) => { if(lv[id] === 'bad') return; if(l === 'info') return; lv[id] = l; };
+  const items = state.items;
+  const floor = items.filter(i => !['wall','door','window'].includes(i.kind));
+  for(const it of items){
+    const b = bbox(it);
+    if(b.x < -0.01 || b.y < -0.01 || b.x+b.w > W+0.01 || b.y+b.h > D+0.01){
+      issues.push({l:'bad', id:it.id, t:`${it.name} sticks out past a wall.`}); bump(it.id,'bad');
+    }
+  }
+  for(let i=0;i<floor.length;i++) for(let j=i+1;j<floor.length;j++){
+    if(inter(bbox(floor[i]), bbox(floor[j]))){
+      issues.push({l:'bad', id:floor[i].id, t:`${floor[i].name} overlaps ${floor[j].name}.`});
+      bump(floor[i].id,'bad'); bump(floor[j].id,'bad');
+    }
+  }
+  for(const it of items.filter(i => i.kind === 'wall')){
+    if(!onWall(bbox(it))){ issues.push({l:'warn', id:it.id, t:`${it.name} is wall-mounted but isn't against a wall.`}); bump(it.id,'warn'); }
+  }
+  for(const w of items.filter(i => i.kind === 'wall')){
+    for(const st of floor.filter(i => i.kind === 'storage')){
+      if(inter(bbox(w), bbox(st))){ issues.push({l:'warn', id:w.id, t:`${w.name} hangs over ${st.name}, so it's hard to reach.`}); bump(w.id,'warn'); bump(st.id,'warn'); }
+    }
+  }
+  for(const wn of items.filter(i => i.kind === 'window')){
+    if(!onWall(bbox(wn))){ issues.push({l:'warn', id:wn.id, t:`${wn.name} isn't on a wall. Drag it to the wall it's in.`}); bump(wn.id,'warn'); }
+    for(const o of items.filter(i => i.kind === 'wall' || i.kind === 'storage')){
+      if(inter(bbox(wn), bbox(o))){ issues.push({l:'warn', id:o.id, t:`${o.name} blocks ${wn.name.toLowerCase()}.`}); bump(o.id,'warn'); bump(wn.id,'warn'); }
+    }
+  }
+  for(const it of items.filter(i => i.kind === 'door')){
+    const [px,py] = tf(it, it.w/2, 0);
+    if(!(near(px,0)||near(px,W)||near(py,0)||near(py,D))){
+      issues.push({l:'warn', id:it.id, t:`The door isn't on a wall. Drag it to a wall and press R until the swing points into the garage.`}); bump(it.id,'warn');
+    }
+    for(const f of floor){ if(inter(bbox(it), bbox(f))){ issues.push({l:'warn', id:it.id, t:`Door swing hits ${f.name}.`}); bump(it.id,'warn'); bump(f.id,'warn'); } }
+  }
+  for(const it of floor){
+    for(const c of clearRects(it)){
+      for(const o of floor){
+        if(o === it || (it.allow||[]).includes(o.id)) continue;
+        if(inter(c, bbox(o))){
+          issues.push({l:'warn', id:it.id, t:`${it.name}: ${sideName(it,c.side)} clearance runs into ${o.name}.`});
+          bump(it.id,'warn'); warnClr.add(it.id+':'+c.side);
+        }
+      }
+      let over = 0, viaDoor = false;
+      if(c.x < -0.5) over = Math.max(over, -c.x);
+      if(c.x+c.w > W+0.5) over = Math.max(over, c.x+c.w-W);
+      if(c.y < -0.5) over = Math.max(over, -c.y);
+      if(c.y+c.h > D+0.5){ if(c.x >= gx-0.5 && c.x+c.w <= gx+door+0.5) viaDoor = true; else over = Math.max(over, c.y+c.h-D); }
+      if(over > 0.5){
+        issues.push({l:'warn', id:it.id, t:`${it.name}: ${sideName(it,c.side)} clearance is ${fin(over)} short (hits a wall).`});
+        bump(it.id,'warn'); warnClr.add(it.id+':'+c.side);
+      } else if(viaDoor){
+        issues.push({l:'info', id:it.id, t:`${it.name}: ${sideName(it,c.side)} runs out the garage door. Open it for long stock.`});
+      }
+    }
+  }
+  return {issues, lv, warnClr};
+}
+
+function labelSvg(it, b){
+  const cx = b.x + b.w/2, cy = b.y + b.h/2;
+  const vertical = b.h > b.w * 1.3 && b.w < 44;
+  const span = vertical ? b.h : b.w, thick = vertical ? b.w : b.h;
+  let fs = Math.max(3, Math.min(6, thick * 0.24, span / Math.max(6, it.short.length) * 1.7));
+  const ds = Math.max(2.6, fs * 0.72);
+  const rot = vertical ? ` transform="rotate(-90 ${cx} ${cy})"` : '';
+  const showDim = thick >= fs * 2.6;
+  const y1 = showDim ? cy - ds*0.35 : cy + fs*0.35;
+  let s = `<g${rot} pointer-events="none"><text class="lbl" x="${cx}" y="${y1}" text-anchor="middle" font-size="${r1(fs)}">${esc(it.short)}</text>`;
+  if(showDim) s += `<text class="lbld" x="${cx}" y="${cy + ds*1.2}" text-anchor="middle" font-size="${r1(ds)}">${fin(it.w)} × ${fin(it.d)}</text>`;
+  return s + '</g>';
+}
+function wallLabel(it, b, plain){
+  const {W,D} = state.garage, cx = b.x + b.w/2, cy = b.y + b.h/2;
+  let x, y, rot = '';
+  if(near(b.x,0)){ x = -T-3.2; y = cy; rot = ` transform="rotate(-90 ${x} ${y})"`; }
+  else if(near(b.x+b.w,W)){ x = W+T+3.2; y = cy; rot = ` transform="rotate(90 ${x} ${y})"`; }
+  else if(near(b.y,0)){ x = cx; y = -T-2.2; }
+  else if(near(b.y+b.h,D)){ x = cx; y = D+T+5; }
+  else { x = cx; y = cy + 1.3; }
+  return `<text class="lblw${plain ? ' lblwin' : ''}" x="${x}" y="${y}" text-anchor="middle"${rot} pointer-events="none">${esc(it.short)}${plain ? '' : ' (wall)'}</text>`;
+}
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+let labels = [];
+function drawItem(it, lv){
+  const b = bbox(it);
+  const cls = ['item','k-'+it.kind, lv ? 'lv-'+lv : '', sel === it.id ? 'sel' : '', it.locked ? 'locked' : ''].join(' ');
+  let g = `<g class="${cls}" data-id="${it.id}"><title>${esc(it.name)}</title>`;
+  if(it.kind === 'window'){
+    const gap = lrect(it, 0, -T-0.6, it.w, T+0.6);
+    const a1 = tf(it,0,-T*0.38), a2 = tf(it,it.w,-T*0.38), b1 = tf(it,0,-T*0.68), b2 = tf(it,it.w,-T*0.68);
+    g += `<rect class="body winzone" x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}"/>`;
+    g += `<rect class="gap" x="${gap.x}" y="${gap.y}" width="${gap.w}" height="${gap.h}"/>`;
+    g += `<rect class="winframe" x="${gap.x}" y="${gap.y}" width="${gap.w}" height="${gap.h}"/>`;
+    g += `<line class="glass" x1="${a1[0]}" y1="${a1[1]}" x2="${a2[0]}" y2="${a2[1]}"/><line class="glass" x1="${b1[0]}" y1="${b1[1]}" x2="${b2[0]}" y2="${b2[1]}"/>`;
+    labels.push(wallLabel(it, b, true));
+    return g + '</g>';
+  }
+  if(it.kind === 'door'){
+    const gap = lrect(it, 0, -T-0.6, it.w, T+0.6);
+    const h = tf(it,0,0), p = tf(it,0,it.w), q = tf(it,it.w,0);
+    g += `<rect class="swing body" x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" style="fill:transparent;stroke:${sel===it.id||lv?'':'none'}"/>`;
+    g += `<rect class="gap" x="${gap.x}" y="${gap.y}" width="${gap.w}" height="${gap.h}"/>`;
+    g += `<path class="door-arc" d="M${q[0]},${q[1]} A${it.w},${it.w} 0 0 1 ${p[0]},${p[1]}"/>`;
+    g += `<line class="door-leaf" x1="${h[0]}" y1="${h[1]}" x2="${p[0]}" y2="${p[1]}"/>`;
+    const c = tf(it, it.w*0.62, it.w*0.42);
+    labels.push(`<text class="lbl" x="${c[0]}" y="${c[1]}" text-anchor="middle" font-size="3.6" pointer-events="none">Door</text>`);
+    return g + '</g>';
+  }
+  g += `<rect class="body" x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="${it.kind==='wall'?0:0.8}"/>`;
+  if(it.kind !== 'wall'){
+    const a = tf(it, it.w*0.1, it.d), z = tf(it, it.w*0.9, it.d);
+    g += `<line class="front" x1="${a[0]}" y1="${a[1]}" x2="${z[0]}" y2="${z[1]}" pointer-events="none"/>`;
+  }
+  if(it.locked) g += `<rect class="lockd" x="${b.x+2}" y="${b.y+2}" width="${Math.max(0,b.w-4)}" height="${Math.max(0,b.h-4)}" pointer-events="none"/>`;
+  if(it.vise){
+    const chop = lrect(it, 3, it.d, 12, 3.5);
+    g += `<rect class="vise" x="${chop.x}" y="${chop.y}" width="${chop.w}" height="${chop.h}"/>`;
+    const stop = lrect(it, 1.5, it.d*0.3, 3, it.d*0.4);
+    g += `<rect class="vise" x="${stop.x}" y="${stop.y}" width="${stop.w}" height="${stop.h}"/>`;
+    for(let u = 22; u <= it.w - 6; u += 7){ const p = tf(it, u, it.d - 3.5); g += `<circle class="dog" cx="${p[0]}" cy="${p[1]}" r="0.75"/>`; }
+  }
+  if(it.mobile && it.kind !== 'wall'){
+    for(const [u,v] of [[2.5,2.5],[it.w-2.5,2.5],[2.5,it.d-2.5],[it.w-2.5,it.d-2.5]]){ const p = tf(it,u,v); g += `<circle class="caster" cx="${p[0]}" cy="${p[1]}" r="1.5"/>`; }
+  }
+  labels.push(it.kind === 'wall' ? wallLabel(it,b) : labelSvg(it,b));
+  return g + '</g>';
+}
+
+function render(){
+  const {W,D,door} = state.garage, gx = (W-door)/2;
+  const L = 40, R = 18, TOP = 30, BOT = 22;
+  svg.setAttribute('viewBox', `${-L} ${-TOP} ${W+L+R} ${D+TOP+BOT}`);
+  const chk = runChecks();
+  let s = `<defs>
+    <pattern id="hatch" width="3.2" height="3.2" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="3.2" class="hatch-line"/></pattern>
+    <pattern id="hatchWarn" width="2.6" height="2.6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="2.6" class="hatch-warn"/></pattern>
+    <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="arrowhead"/></marker>
+  </defs>`;
+  s += `<rect class="floor" x="0" y="0" width="${W}" height="${D}"/>`;
+  for(let x = 6; x < W; x += 6) s += `<line class="${x%12?'g-minor':'g-major'}" x1="${x}" y1="0" x2="${x}" y2="${D}"/>`;
+  for(let y = 6; y < D; y += 6) s += `<line class="${y%12?'g-minor':'g-major'}" x1="0" y1="${y}" x2="${W}" y2="${y}"/>`;
+  if(view.clr){
+    for(const it of state.items){
+      if(['wall','door','window'].includes(it.kind)) continue;
+      for(const c of clearRects(it)) s += `<rect class="clr${chk.warnClr.has(it.id+':'+c.side)?' w':''}" x="${c.x}" y="${c.y}" width="${c.w}" height="${c.h}" pointer-events="none"/>`;
+    }
+  }
+  {
+    const ohL = Math.min(D, (state.garage.doorH || 84) + 18), oy = D - ohL, tl = Math.max(1, gx - 2), tr = Math.min(W-1, gx + door + 2);
+    s += `<rect class="ovh" x="${gx}" y="${oy}" width="${door}" height="${ohL}" pointer-events="none"/>`;
+  }
+  s += `<path class="wall" fill-rule="evenodd" d="M${-T},${-T} H${W+T} V${D+T} H${-T} Z M0,0 H${W} V${D} H0 Z"/>`;
+  s += `<rect class="gap" x="${gx}" y="${D-0.5}" width="${door}" height="${T+1}"/>`;
+  s += `<line class="gdoor" x1="${gx}" y1="${D+T/2}" x2="${gx+door}" y2="${D+T/2}"/>`;
+  s += `<text class="dimt" x="${W/2}" y="${D+T+10}" text-anchor="middle">GARAGE DOOR · ${fmt(door)}</text>`;
+  // overall dimensions
+  const dy = -T-13, dx = -T-27;
+  s += `<line class="dim" x1="0" y1="${dy}" x2="${W}" y2="${dy}"/><line class="dim" x1="0" y1="${dy-2.5}" x2="0" y2="${dy+2.5}"/><line class="dim" x1="${W}" y1="${dy-2.5}" x2="${W}" y2="${dy+2.5}"/>`;
+  s += `<text class="dimt" x="${W/2}" y="${dy-2}" text-anchor="middle">${fmt(W)} inside · back wall</text>`;
+  s += `<line class="dim" x1="${dx}" y1="0" x2="${dx}" y2="${D}"/><line class="dim" x1="${dx-2.5}" y1="0" x2="${dx+2.5}" y2="0"/><line class="dim" x1="${dx-2.5}" y1="${D}" x2="${dx+2.5}" y2="${D}"/>`;
+  s += `<text class="dimt" x="${dx-2}" y="${D/2}" text-anchor="middle" transform="rotate(-90 ${dx-2} ${D/2})">${fmt(D)} inside</text>`;
+  // items: doors, floor, then wall-mounted on top
+  const order = it => it.kind === 'door' || it.kind === 'window' ? 0 : it.kind === 'wall' ? 2 : 1;
+  const sorted = state.items.slice().sort((a,b) => order(a) - order(b) || (a.id === sel) - (b.id === sel));
+  labels = [];
+  for(const it of sorted) s += drawItem(it, chk.lv[it.id]);
+  s += labels.join('');
+  {
+    const ohL = Math.min(D, (state.garage.doorH || 84) + 18), oy = D - ohL, tl = Math.max(1, gx - 2), tr = Math.min(W-1, gx + door + 2);
+    const lx = tr - 2.4, ly = D - 22;
+    s += `<line class="track" x1="${tl}" y1="${oy}" x2="${tl}" y2="${D}"/><line class="track" x1="${tr}" y1="${oy}" x2="${tr}" y2="${D}"/>`;
+    s += `<text class="ovht" x="${lx}" y="${ly}" text-anchor="middle" transform="rotate(90 ${lx} ${ly})">ceiling track</text>`;
+  }
+  if(view.flow) s += drawFlow();
+  svg.innerHTML = s;
+}
+
+function drawFlow(){
+  const {W,D,door} = state.garage;
+  const pts = [];
+  for(const [id,label] of FLOW){
+    if(id === 'door-gap'){ pts.push({x:W/2, y:D-7, label}); continue; }
+    const it = find(id); if(!it) continue;
+    const b = bbox(it);
+    pts.push({x:b.x + b.w, y:b.y, label});
+  }
+  let s = '';
+  for(let i = 0; i < pts.length-1; i++){
+    const a = pts[i], b = pts[i+1];
+    const dx = b.x-a.x, dy = b.y-a.y, len = Math.hypot(dx,dy) || 1;
+    const ux = dx/len, uy = dy/len, rr = 5;
+    const x1 = a.x+ux*rr, y1 = a.y+uy*rr, x2 = b.x-ux*(rr+1), y2 = b.y-uy*(rr+1);
+    const mx = (x1+x2)/2 - uy*len*0.12, my = (y1+y2)/2 + ux*len*0.12;
+    s += `<path class="flow" d="M${x1},${y1} Q${mx},${my} ${x2},${y2}" marker-end="url(#ah)" pointer-events="none"/>`;
+  }
+  pts.forEach((p,i) => {
+    s += `<g pointer-events="none"><circle class="badge" cx="${p.x}" cy="${p.y}" r="4.2"/><text class="badget" x="${p.x}" y="${p.y}">${i+1}</text></g>`;
+  });
+  const p0 = pts[0]; if(p0) s += `<text class="flowl" x="${p0.x+6}" y="${p0.y+1.4}" pointer-events="none">${p0.label}</text>`;
+  return s;
+}
+
+// ---------- panel ----------
+function renderSel(){
+  const box = $('selCard'), it = find(sel);
+  if(!it){
+    box.innerHTML = `<h2>Selected</h2><p class="hint">Click an item on the plan to see why it sits there and to edit its size or clearances. Drag to move. With an item selected: R rotates 90°, arrow keys nudge 1″ (Shift for 6″).</p>`;
+    return;
+  }
+  const b = bbox(it), c = it.clr || {f:0,b:0,l:0,r:0}, noClr = ['wall','door','window'].includes(it.kind);
+  box.innerHTML = `<h2>Selected</h2>
+    <div class="field"><label for="sName">Name</label><input id="sName" type="text" value="${esc(it.name)}"></div>
+    <div class="grid2" style="margin-top:8px">
+      <div class="field"><label for="sW">Width ″</label><input id="sW" type="number" min="2" value="${it.w}"></div>
+      <div class="field"><label for="sD">Depth ″</label><input id="sD" type="number" min="2" value="${it.d}"></div>
+    </div>
+    ${noClr ? '' : `<div class="field" style="margin-top:10px">Clearance needed, inches</div>
+    <div class="grid4">
+      <div class="field"><label for="cF">${esc(sideName(it,'f'))}</label><input id="cF" type="number" min="0" value="${c.f}"></div>
+      <div class="field"><label for="cB">${esc(sideName(it,'b'))}</label><input id="cB" type="number" min="0" value="${c.b}"></div>
+      <div class="field"><label for="cL">left</label><input id="cL" type="number" min="0" value="${c.l}"></div>
+      <div class="field"><label for="cR">right</label><input id="cR" type="number" min="0" value="${c.r}"></div>
+    </div>`}
+    <p class="pos" id="sPos">${posText(it)}</p>
+    <label class="chk" style="margin-top:10px"><input type="checkbox" id="lockChk"${it.locked ? ' checked' : ''}> Locked in place</label>${it.locked ? '<p class="hint" style="margin-top:4px">Uncheck this to drag or rotate it.</p>' : ''}
+    <div class="row" style="margin-top:10px"><button id="rotBtn"${it.locked ? ' disabled' : ''}>Rotate 90°</button><button id="delBtn" class="danger"${it.locked ? ' disabled' : ''}>Remove</button></div>
+    ${it.note ? `<p class="note">${esc(it.note)}</p>` : ''}`;
+  const upd = () => { render(); renderList(); renderIssues(); $('sPos').textContent = posText(it); save(); };
+  $('sName').addEventListener('input', e => { it.name = e.target.value || 'Item'; it.short = it.name.length > 18 ? it.name.slice(0,18)+'…' : it.name; upd(); });
+  $('sW').addEventListener('input', e => { const v = +e.target.value; if(v >= 2){ it.w = v; upd(); } });
+  $('sD').addEventListener('input', e => { const v = +e.target.value; if(v >= 2){ it.d = v; upd(); } });
+  if(!noClr){
+    [['cF','f'],['cB','b'],['cL','l'],['cR','r']].forEach(([id,k]) => $(id).addEventListener('input', e => { it.clr[k] = Math.max(0, +e.target.value || 0); upd(); }));
+  }
+  $('rotBtn').addEventListener('click', () => { if(!it.locked){ rotate(it); upd(); } });
+  $('lockChk').addEventListener('change', e => { it.locked = e.target.checked; save(); render(); renderSel(); });
+  let armed = false;
+  $('delBtn').addEventListener('click', e => {
+    if(!armed){ armed = true; e.target.textContent = 'Click again to remove'; return; }
+    state.items = state.items.filter(x => x !== it); sel = null; render(); renderAll(); save();
+  });
+}
+function posText(it){ const b = bbox(it); return `${fin(b.x)} from left wall · ${fin(b.y)} from back wall · ${fin(b.w)} × ${fin(b.h)} on plan`; }
+function renderList(){
+  const chk = runChecks();
+  $('list').innerHTML = state.items.map(it => {
+    const lv = chk.lv[it.id] || '';
+    return `<button class="${it.id === sel ? 'on' : ''}" data-id="${it.id}"><i class="dot ${lv}"></i>${esc(it.name)}${it.locked ? ' <small style="margin-left:4px">locked</small>' : ''}<small>${fin(it.w)}×${fin(it.d)}</small></button>`;
+  }).join('');
+  $('list').querySelectorAll('button').forEach(b => b.addEventListener('click', () => { sel = b.dataset.id; render(); renderAll(); }));
+}
+function renderIssues(){
+  const chk = runChecks();
+  const bad = chk.issues.filter(i => i.l !== 'info');
+  let h = bad.length ? '' : `<p class="ok">Everything fits. No overlaps or blocked clearances.</p>`;
+  if(chk.issues.length) h += `<ul class="issues"${bad.length ? '' : ' style="margin-top:8px"'}>${chk.issues.map(i => `<li class="${i.l}">${esc(i.t)}</li>`).join('')}</ul>`;
+  $('issues').innerHTML = h;
+}
+function renderGarage(){
+  const {W,D,door} = state.garage;
+  $('wft').value = Math.floor(W/12); $('win').value = W % 12;
+  $('dft').value = Math.floor(D/12); $('din').value = D % 12;
+  $('gdw').value = door/12;
+  $('gdh').value = (state.garage.doorH || 84)/12;
+}
+function renderAll(){ renderSel(); renderList(); renderIssues(); renderGarage(); }
+
+function rotate(it){
+  const b = bbox(it), cx = b.x + b.w/2, cy = b.y + b.h/2;
+  it.rot = (it.rot + 90) % 360;
+  const nb = bbox(it);
+  it.x = Math.round(cx - nb.w/2); it.y = Math.round(cy - nb.h/2);
+}
+
+// ---------- interaction ----------
+function pt(e){ const m = svg.getScreenCTM().inverse(); const p = new DOMPoint(e.clientX, e.clientY).matrixTransform(m); return {x:p.x, y:p.y}; }
+svg.addEventListener('pointerdown', e => {
+  const g = e.target.closest('.item');
+  if(!g){ if(sel){ sel = null; render(); renderAll(); } return; }
+  const it = find(g.dataset.id); if(!it) return;
+  sel = it.id;
+  const p = pt(e); drag = it.locked ? null : {id:it.id, dx:p.x - it.x, dy:p.y - it.y, moved:false};
+  try{ svg.setPointerCapture(e.pointerId); }catch(_){}
+  e.preventDefault();
+  render(); renderAll();
+});
+svg.addEventListener('pointermove', e => {
+  if(!drag) return;
+  const it = find(drag.id); if(!it) return;
+  const p = pt(e);
+  const nx = Math.round((p.x - drag.dx)/snap)*snap, ny = Math.round((p.y - drag.dy)/snap)*snap;
+  if(nx !== it.x || ny !== it.y){ it.x = nx; it.y = ny; drag.moved = true; render(); const sp = $('sPos'); if(sp) sp.textContent = posText(it); }
+});
+const endDrag = () => { if(drag){ const m = drag.moved; drag = null; if(m){ save(); renderList(); renderIssues(); } } };
+svg.addEventListener('pointerup', endDrag);
+svg.addEventListener('pointercancel', endDrag);
+
+document.addEventListener('keydown', e => {
+  if(['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName)) return;
+  const it = find(sel); if(!it) return;
+  if(it.locked && e.key !== 'Escape') return;
+  const step = e.shiftKey ? 6 : 1;
+  let hit = true;
+  if(e.key === 'r' || e.key === 'R') rotate(it);
+  else if(e.key === 'ArrowLeft') it.x -= step;
+  else if(e.key === 'ArrowRight') it.x += step;
+  else if(e.key === 'ArrowUp') it.y -= step;
+  else if(e.key === 'ArrowDown') it.y += step;
+  else if(e.key === 'Escape'){ sel = null; }
+  else hit = false;
+  if(hit){ e.preventDefault(); render(); renderAll(); save(); }
+});
+
+function adaptToResize(oldW, oldD){
+  const {W,D} = state.garage;
+  for(const it of state.items){
+    const b = bbox(it);
+    const atL = near(b.x,0), atR = near(b.x+b.w,oldW), atB = near(b.y,0), atF = near(b.y+b.h,oldD);
+    if(atR && !atL) it.x = W - b.w;
+    else if(!atL) it.x = Math.round((b.x + b.w/2) * W/oldW - b.w/2);
+    if(atF && !atB) it.y = D - b.h;
+    else if(!atB) it.y = Math.round((b.y + b.h/2) * D/oldD - b.h/2);
+  }
+  pullInside();
+}
+function pullInside(){
+  const {W,D} = state.garage; let changed = false;
+  for(const it of state.items){
+    const b = bbox(it);
+    const nx = Math.max(0, Math.min(it.x, W - b.w)), ny = Math.max(0, Math.min(it.y, D - b.h));
+    if(nx !== it.x || ny !== it.y){ it.x = nx; it.y = ny; changed = true; }
+  }
+  return changed;
+}
+function garageInput(){
+  const W = (+$('wft').value||0)*12 + (+$('win').value||0);
+  const D = (+$('dft').value||0)*12 + (+$('din').value||0);
+  const door = Math.round((+$('gdw').value||0)*12);
+  const doorH = Math.round((+$('gdh').value||0)*12);
+  if(W >= 72 && D >= 96 && door >= 48 && door <= W && doorH >= 72){
+    const oldW = state.garage.W, oldD = state.garage.D;
+    state.garage = {W, D, door, doorH};
+    if(W !== oldW || D !== oldD) adaptToResize(oldW, oldD);
+    render(); renderAll(); save();
+  } else {
+    renderGarage();
+    msg('Garage needs to be at least 6′ × 8′, with a door no wider than the garage.', 'err');
+  }
+}
+['wft','win','dft','din','gdw','gdh'].forEach(id => $(id).addEventListener('change', garageInput));
+$('snap').addEventListener('change', e => { snap = +e.target.value; });
+$('vClr').addEventListener('change', e => { view.clr = e.target.checked; render(); });
+$('vFlow').addEventListener('change', e => { view.flow = e.target.checked; render(); });
+
+$('addBtn').addEventListener('click', () => {
+  const name = $('nName').value.trim() || 'New item';
+  const w = Math.max(2, +$('nW').value || 24), d = Math.max(2, +$('nD').value || 24), kind = $('nK').value;
+  const {W,D} = state.garage;
+  const it = {id:'i'+Date.now().toString(36), name, short:name.length > 18 ? name.slice(0,18)+'…' : name, kind, w, d, rot:0,
+    x:Math.round(W/2 - w/2), y:Math.round(D/2 - d/2), clr: (kind === 'wall' || kind === 'window') ? {f:0,b:0,l:0,r:0} : {f:24,b:0,l:0,r:0}, note:''};
+  if(kind === 'window'){ it.d = 6; }
+  state.items.push(it); sel = it.id; $('nName').value = '';
+  render(); renderAll(); save();
+});
+
+let undoState = null, undoTimer = null;
+$('resetBtn').addEventListener('click', e => {
+  const btn = e.currentTarget;
+  clearTimeout(undoTimer);
+  if(undoState){
+    state = undoState; undoState = null; btn.textContent = 'Reset layout';
+  } else {
+    undoState = clone(state); state = clone(DEFAULT); btn.textContent = 'Undo reset';
+    undoTimer = setTimeout(() => { undoState = null; btn.textContent = 'Reset layout'; }, 8000);
+  }
+  sel = null; render(); renderAll(); save();
+});
+
+$('copyBtn').addEventListener('click', async e => {
+  const {W,D,door} = state.garage;
+  const lines = [`Garage ${fmt(W)} wide × ${fmt(D)} deep, ${fmt(door)} wide × ${fmt(state.garage.doorH||84)} tall overhead garage door (ceiling tracks) centered on the front wall.`, `Positions are the item's corner nearest the back-left corner of the garage.`, ''];
+  for(const it of state.items){
+    const b = bbox(it);
+    lines.push(`- ${it.name}: ${fin(it.w)} × ${fin(it.d)}, ${fin(b.x)} from left wall, ${fin(b.y)} from back wall${it.rot ? `, rotated ${it.rot}°` : ''}${it.kind === 'wall' ? ' (wall-mounted)' : ''}`);
+  }
+  copyText(lines.join('\n'), e.currentTarget, 'Copy layout as text');
+});
+
+// ---------- export / import ----------
+function exportJson(){
+  return JSON.stringify({app:'garage-shop-layout', v:LAYOUT_VERSION, exported:new Date().toISOString(), garage:state.garage, items:state.items}, null, 2);
+}
+function msg(text, kind, undo){
+  const m = $('ioMsg'); m.className = 'iomsg' + (kind ? ' ' + kind : ''); m.textContent = text;
+  if(undo){ const b = document.createElement('button'); b.textContent = 'Undo import'; b.addEventListener('click', () => { state = undo; sel = null; render(); renderAll(); save(); msg('Import undone. Your previous layout is back.', 'okm'); }); m.appendChild(b); }
+}
+function showCopy(txt){ const out = $('copyOut'); out.value = txt; out.style.display = 'block'; out.focus(); out.select(); }
+async function copyText(txt, btn, label){
+  try{ await navigator.clipboard.writeText(txt); btn.textContent = 'Copied'; setTimeout(() => btn.textContent = label, 1800); $('copyOut').style.display = 'none'; }
+  catch(_){ showCopy(txt); btn.textContent = 'Select and copy below'; setTimeout(() => btn.textContent = label, 4000); }
+}
+function parseLayout(txt){
+  let o;
+  try{ o = JSON.parse(txt); }catch(_){ throw new Error("That isn't valid JSON. Paste the whole export, from the first { to the last }."); }
+  const g = o && o.garage, items = o && o.items;
+  if(!g || !Array.isArray(items)) throw new Error("This doesn't look like a layout export. It needs a garage and a list of items.");
+  const num = (v,min) => typeof v === 'number' && isFinite(v) && v >= min;
+  if(!num(g.W,72) || !num(g.D,96) || !num(g.door,48)) throw new Error('The garage size in this layout is missing or smaller than 6′ × 8′.');
+  const kinds = ['tool','bench','storage','wall','window','door'], seen = new Set(), str = v => typeof v === 'string' ? v : '';
+  const out = items.map((it, i) => {
+    if(!it || typeof it.name !== 'string' || !num(it.w,1) || !num(it.d,1) || !num(it.x,-1e4) || !num(it.y,-1e4)) throw new Error(`Item ${i+1} is missing a name, size or position.`);
+    let id = str(it.id) || 'i' + i; while(seen.has(id)) id += '_'; seen.add(id);
+    const c = it.clr || {}, cl = k => num(c[k],0) ? c[k] : 0;
+    const n = {id, name:it.name.slice(0,80), short:(str(it.short) || it.name).slice(0,24), kind:kinds.includes(it.kind) ? it.kind : 'tool',
+      w:it.w, d:it.d, x:it.x, y:it.y, rot:[0,90,180,270].includes(it.rot) ? it.rot : 0,
+      clr:{f:cl('f'), b:cl('b'), l:cl('l'), r:cl('r')}, note:str(it.note).slice(0,600)};
+    if(it.mobile === true) n.mobile = true;
+    if(it.vise === true) n.vise = true;
+    if(it.locked === true) n.locked = true;
+    if(it.sides && typeof it.sides === 'object'){ n.sides = {}; for(const k of ['f','b','l','r']) if(typeof it.sides[k] === 'string') n.sides[k] = it.sides[k].slice(0,20); }
+    if(Array.isArray(it.allow)) n.allow = it.allow.filter(a => typeof a === 'string');
+    return n;
+  });
+  return {v:LAYOUT_VERSION, garage:{W:g.W, D:g.D, door:Math.min(g.door, g.W), doorH:num(g.doorH,72) ? g.doorH : 84}, items:out};
+}
+function applyImport(txt, source){
+  try{
+    const next = parseLayout(txt), prev = clone(state);
+    state = next; sel = null; render(); renderAll(); save();
+    const {W,D} = state.garage;
+    msg(`Loaded ${state.items.length} items from ${source} (garage ${fmt(W)} × ${fmt(D)}).`, 'okm', prev);
+    return true;
+  }catch(err){ msg(err.message, 'err'); return false; }
+}
+$('copyJsonBtn').addEventListener('click', e => copyText(exportJson(), e.currentTarget, 'Copy JSON'));
+$('importBtn').addEventListener('click', () => $('importFile').click());
+$('importFile').addEventListener('change', async e => {
+  const f = e.target.files && e.target.files[0]; if(!f) return;
+  try{ applyImport(await f.text(), f.name); }catch(_){ msg("That file couldn't be read. Try again, or paste its contents below.", 'err'); }
+  e.target.value = '';
+});
+$('pasteBtn').addEventListener('click', () => {
+  const t = $('pasteIn').value.trim();
+  if(!t){ msg('Paste an exported layout into the box first.', 'err'); return; }
+  if(applyImport(t, 'the pasted text')) $('pasteIn').value = '';
+});
+let downloadsApi = null;
+$('dlBtn').addEventListener('click', async () => {
+  if(!downloadsApi) return;
+  const day = new Date().toISOString().slice(0,10);
+  try{
+    await downloadsApi.save({filename:`garage-shop-layout-${day}.json`, data:exportJson()});
+    msg('Layout downloaded.', 'okm');
+  }catch(err){
+    const code = err && err.code;
+    if(code === 'declined') msg('Download cancelled.', '');
+    else if(code === 'rate_limited') msg('A download prompt is already open. Finish it, then try again.', 'err');
+    else { $('dlBtn').hidden = true; msg("Downloads aren't available here. Use Copy JSON and save it in a text file instead.", 'err'); }
+  }
+});
+(async () => {
+  try{
+    if(window.claude && typeof window.claude.use === 'function'){
+      downloadsApi = await window.claude.use('downloads');
+      if(downloadsApi) $('dlBtn').hidden = false;
+    }
+  }catch(_){ downloadsApi = null; }
+})();
+
+state.items.forEach(it => { if(!it.short) it.short = it.name; if(!it.clr) it.clr = {f:0,b:0,l:0,r:0}; });
+if(pullInside()) save();
+render(); renderAll();
+if(upgradedFrom){
+  const m = $('ioMsg'); m.className = 'iomsg okm';
+  m.textContent = 'Switched to the new 12′ 6″ × 18′ layout.';
+  const b = document.createElement('button'); b.textContent = 'Restore my previous layout';
+  b.addEventListener('click', () => { state = upgradedFrom; upgradedFrom = null; pullInside(); sel = null; render(); renderAll(); save(); m.textContent = 'Previous layout restored.'; });
+  m.appendChild(b);
+}
+})();
+</script>
+</body>
+</html>
