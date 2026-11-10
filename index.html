@@ -220,6 +220,7 @@ textarea#copyOut{width:100%;height:140px;font:12px var(--mono);margin-top:8px;di
           <div class="field" style="grid-column:1/-1"><label for="nK">Type</label>
             <select id="nK" style="width:100%;font-family:var(--body)"><option value="tool">Power tool</option><option value="bench">Bench / table</option><option value="storage">Storage</option><option value="wall">Wall-mounted</option><option value="window">Window</option></select></div>
         </div>
+        <label class="chk" style="margin-top:8px"><input type="checkbox" id="nMob"> On casters (mobile)</label>
         <div class="row" style="margin-top:8px"><button id="addBtn">Add to plan</button></div>
       </div>
     </section>
@@ -617,7 +618,7 @@ function drawFlow(){
 function renderSel(){
   const box = $('selCard'), it = find(sel);
   if(!it){
-    box.innerHTML = `<h2>Selected</h2><p class="hint">Click an item on the plan to see why it sits there and to edit its size or clearances. Drag to move. With an item selected: R rotates 90°, arrow keys nudge 1″ (Shift for 6″).</p>`;
+    box.innerHTML = `<h2>Selected</h2><p class="hint">Click an item on the plan to see why it sits there and to edit its size or clearances. Drag to move. With an item selected: R rotates 90°, arrow keys move it by the snap amount (Shift moves a full foot).</p>`;
     return;
   }
   const b = bbox(it), c = it.clr || {f:0,b:0,l:0,r:0}, noClr = ['wall','door','window'].includes(it.kind);
@@ -635,7 +636,8 @@ function renderSel(){
       <div class="field"><label for="cR">right</label><input id="cR" type="number" min="0" value="${c.r}"></div>
     </div>`}
     <p class="pos" id="sPos">${posText(it)}</p>
-    <label class="chk" style="margin-top:10px"><input type="checkbox" id="lockChk"${it.locked ? ' checked' : ''}> Locked in place</label>${it.locked ? '<p class="hint" style="margin-top:4px">Uncheck this to drag or rotate it.</p>' : ''}
+    ${noClr ? '' : `<label class="chk" style="margin-top:10px"><input type="checkbox" id="mobChk"${it.mobile ? ' checked' : ''}> On casters (mobile)</label>`}
+    <label class="chk" style="margin-top:8px"><input type="checkbox" id="lockChk"${it.locked ? ' checked' : ''}> Locked in place</label>${it.locked ? '<p class="hint" style="margin-top:4px">Uncheck this to drag or rotate it.</p>' : ''}
     <div class="row" style="margin-top:10px"><button id="rotBtn"${it.locked ? ' disabled' : ''}>Rotate 90°</button><button id="delBtn" class="danger"${it.locked ? ' disabled' : ''}>Remove</button></div>
     ${it.note ? `<p class="note">${esc(it.note)}</p>` : ''}`;
   const upd = () => { render(); renderList(); renderIssues(); $('sPos').textContent = posText(it); save(); };
@@ -646,6 +648,7 @@ function renderSel(){
     [['cF','f'],['cB','b'],['cL','l'],['cR','r']].forEach(([id,k]) => $(id).addEventListener('input', e => { it.clr[k] = Math.max(0, +e.target.value || 0); upd(); }));
   }
   $('rotBtn').addEventListener('click', () => { if(!it.locked){ rotate(it); upd(); } });
+  if($('mobChk')) $('mobChk').addEventListener('change', e => { if(e.target.checked) it.mobile = true; else delete it.mobile; save(); render(); renderList(); });
   $('lockChk').addEventListener('change', e => { it.locked = e.target.checked; save(); render(); renderSel(); });
   let armed = false;
   $('delBtn').addEventListener('click', e => {
@@ -688,6 +691,8 @@ function rotate(it){
 // ---------- interaction ----------
 function pt(e){ const m = svg.getScreenCTM().inverse(); const p = new DOMPoint(e.clientX, e.clientY).matrixTransform(m); return {x:p.x, y:p.y}; }
 svg.addEventListener('pointerdown', e => {
+  // preventDefault below stops the browser moving focus, so release any focused control (like Snap) here
+  if(document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
   const g = e.target.closest('.item');
   if(!g){ if(sel){ sel = null; render(); renderAll(); } return; }
   const it = find(g.dataset.id); if(!it) return;
@@ -712,13 +717,16 @@ document.addEventListener('keydown', e => {
   if(['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName)) return;
   const it = find(sel); if(!it) return;
   if(it.locked && e.key !== 'Escape') return;
-  const step = e.shiftKey ? 6 : 1;
+  const step = e.shiftKey ? 12 : snap;
+  // move to the next snap line in that direction, so items land on the grid
+  const fwd = v => Math.floor(v / step) * step + step;
+  const back = v => Math.ceil(v / step) * step - step;
   let hit = true;
   if(e.key === 'r' || e.key === 'R') rotate(it);
-  else if(e.key === 'ArrowLeft') it.x -= step;
-  else if(e.key === 'ArrowRight') it.x += step;
-  else if(e.key === 'ArrowUp') it.y -= step;
-  else if(e.key === 'ArrowDown') it.y += step;
+  else if(e.key === 'ArrowLeft') it.x = back(it.x);
+  else if(e.key === 'ArrowRight') it.x = fwd(it.x);
+  else if(e.key === 'ArrowUp') it.y = back(it.y);
+  else if(e.key === 'ArrowDown') it.y = fwd(it.y);
   else if(e.key === 'Escape'){ sel = null; }
   else hit = false;
   if(hit){ e.preventDefault(); render(); renderAll(); save(); }
@@ -765,6 +773,8 @@ $('snap').addEventListener('change', e => { snap = +e.target.value; });
 $('vClr').addEventListener('change', e => { view.clr = e.target.checked; render(); });
 $('vFlow').addEventListener('change', e => { view.flow = e.target.checked; render(); });
 
+function syncAddMob(){ const k = $('nK').value, off = k === 'wall' || k === 'window'; $('nMob').disabled = off; if(off) $('nMob').checked = false; }
+$('nK').addEventListener('change', syncAddMob);
 $('addBtn').addEventListener('click', () => {
   const name = $('nName').value.trim() || 'New item';
   const w = Math.max(2, +$('nW').value || 24), d = Math.max(2, +$('nD').value || 24), kind = $('nK').value;
@@ -772,6 +782,8 @@ $('addBtn').addEventListener('click', () => {
   const it = {id:'i'+Date.now().toString(36), name, short:name.length > 18 ? name.slice(0,18)+'…' : name, kind, w, d, rot:0,
     x:Math.round(W/2 - w/2), y:Math.round(D/2 - d/2), clr: (kind === 'wall' || kind === 'window') ? {f:0,b:0,l:0,r:0} : {f:24,b:0,l:0,r:0}, note:''};
   if(kind === 'window'){ it.d = 6; }
+  if($('nMob').checked && kind !== 'wall' && kind !== 'window') it.mobile = true;
+  $('nMob').checked = false;
   state.items.push(it); sel = it.id; $('nName').value = '';
   render(); renderAll(); save();
 });
